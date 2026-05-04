@@ -28,25 +28,115 @@
       "type": "securestring",
       "metadata": { "description": "App Registration Client Secret." }
     },
-    "dataCollectionEndpoint": {
+    "tableName": {
       "type": "string",
-      "metadata": { "description": "DCE Logs Ingestion URI — e.g. https://<dce>.<region>.ingest.monitor.azure.com" }
+      "defaultValue": "SecurityEvents_CL",
+      "metadata": { "description": "Custom Log Analytics table name. Must end in _CL." }
     },
-    "dataCollectionRuleId": {
-      "type": "string",
-      "metadata": { "description": "DCR Immutable ID (starts with dcr-)." }
-    },
-    "streamName": {
-      "type": "string",
-      "metadata": { "description": "Stream name defined in the DCR — e.g. Custom-SecurityEvents_CL" }
+    "logRetentionDays": {
+      "type": "int",
+      "defaultValue": 30,
+      "minValue": 7,
+      "maxValue": 730,
+      "metadata": { "description": "Retention period in days for the custom table." }
     }
   },
   "variables": {
+    "workspaceName": "[concat(parameters('functionAppName'), '-law')]",
+    "dceName": "[concat(parameters('functionAppName'), '-dce')]",
+    "dcrName": "[concat(parameters('functionAppName'), '-dcr')]",
+    "streamName": "[concat('Custom-', parameters('tableName'))]",
     "hostingPlanName": "[concat(parameters('functionAppName'), '-plan')]",
     "appInsightsName": "[concat(parameters('functionAppName'), '-ai')]"
   },
   "resources": [
     {
+      "comments": "──── Log Analytics Workspace ────────────────────────────────────────",
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2022-10-01",
+      "name": "[variables('workspaceName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": { "name": "PerGB2018" },
+        "retentionInDays": "[parameters('logRetentionDays')]",
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled"
+      }
+    },
+    {
+      "comments": "──── Custom table inside the workspace ──────────────────────────────",
+      "type": "Microsoft.OperationalInsights/workspaces/tables",
+      "apiVersion": "2022-10-01",
+      "name": "[concat(variables('workspaceName'), '/', parameters('tableName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('workspaceName'))]"
+      ],
+      "properties": {
+        "plan": "Analytics",
+        "retentionInDays": "[parameters('logRetentionDays')]",
+        "schema": {
+          "name": "[parameters('tableName')]",
+          "columns": [
+            { "name": "TimeGenerated", "type": "datetime" },
+            { "name": "DeviceId",      "type": "string"   },
+            { "name": "Severity",      "type": "string"   },
+            { "name": "EventMessage",  "type": "string"   }
+          ]
+        }
+      }
+    },
+    {
+      "comments": "──── Data Collection Endpoint (DCE) ─────────────────────────────────",
+      "type": "Microsoft.Insights/dataCollectionEndpoints",
+      "apiVersion": "2022-06-01",
+      "name": "[variables('dceName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "networkAcls": { "publicNetworkAccess": "Enabled" }
+      }
+    },
+    {
+      "comments": "──── Data Collection Rule (DCR) ─────────────────────────────────────",
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "apiVersion": "2022-06-01",
+      "name": "[variables('dcrName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName'))]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces/tables', variables('workspaceName'), parameters('tableName'))]"
+      ],
+      "properties": {
+        "dataCollectionEndpointId": "[resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName'))]",
+        "streamDeclarations": {
+          "[variables('streamName')]": {
+            "columns": [
+              { "name": "TimeGenerated", "type": "datetime" },
+              { "name": "DeviceId",      "type": "string"   },
+              { "name": "Severity",      "type": "string"   },
+              { "name": "EventMessage",  "type": "string"   }
+            ]
+          }
+        },
+        "destinations": {
+          "logAnalytics": [
+            {
+              "name": "lawDestination",
+              "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('workspaceName'))]"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": [ "[variables('streamName')]" ],
+            "destinations": [ "lawDestination" ],
+            "transformKql": "source",
+            "outputStream": "[variables('streamName')]"
+          }
+        ]
+      }
+    },
+    {
+      "comments": "──── Storage Account (required by Function App) ─────────────────────",
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2023-01-01",
       "name": "[parameters('storageAccountName')]",
@@ -60,17 +150,23 @@
       }
     },
     {
+      "comments": "──── Application Insights ───────────────────────────────────────────",
       "type": "Microsoft.Insights/components",
       "apiVersion": "2020-02-02",
       "name": "[variables('appInsightsName')]",
       "location": "[parameters('location')]",
       "kind": "web",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('workspaceName'))]"
+      ],
       "properties": {
         "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('workspaceName'))]",
         "RetentionInDays": 30
       }
     },
     {
+      "comments": "──── Consumption Plan (Linux) ───────────────────────────────────────",
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2022-09-01",
       "name": "[variables('hostingPlanName')]",
@@ -80,6 +176,7 @@
       "properties": { "reserved": true }
     },
     {
+      "comments": "──── Function App ───────────────────────────────────────────────────",
       "type": "Microsoft.Web/sites",
       "apiVersion": "2022-09-01",
       "name": "[parameters('functionAppName')]",
@@ -88,7 +185,8 @@
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
         "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
-        "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
+        "[resourceId('Microsoft.Insights/dataCollectionRules', variables('dcrName'))]"
       ],
       "properties": {
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
@@ -103,14 +201,8 @@
               "name": "AzureWebJobsStorage",
               "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('storageAccountName'), ';EndpointSuffix=', environment().suffixes.storage, ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-01-01').keys[0].value)]"
             },
-            {
-              "name": "FUNCTIONS_EXTENSION_VERSION",
-              "value": "~4"
-            },
-            {
-              "name": "FUNCTIONS_WORKER_RUNTIME",
-              "value": "python"
-            },
+            { "name": "FUNCTIONS_EXTENSION_VERSION",          "value": "~4" },
+            { "name": "FUNCTIONS_WORKER_RUNTIME",              "value": "python" },
             {
               "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
               "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').InstrumentationKey]"
@@ -119,29 +211,20 @@
               "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
               "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString]"
             },
-            {
-              "name": "TENANT_ID",
-              "value": "[parameters('tenantId')]"
-            },
-            {
-              "name": "CLIENT_ID",
-              "value": "[parameters('clientId')]"
-            },
-            {
-              "name": "CLIENT_SECRET",
-              "value": "[parameters('clientSecret')]"
-            },
+            { "name": "TENANT_ID",      "value": "[parameters('tenantId')]"      },
+            { "name": "CLIENT_ID",      "value": "[parameters('clientId')]"      },
+            { "name": "CLIENT_SECRET",  "value": "[parameters('clientSecret')]"  },
             {
               "name": "DATA_COLLECTION_ENDPOINT",
-              "value": "[parameters('dataCollectionEndpoint')]"
+              "value": "[reference(resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName')), '2022-06-01').logsIngestion.endpoint]"
             },
             {
               "name": "DATA_COLLECTION_RULE_ID",
-              "value": "[parameters('dataCollectionRuleId')]"
+              "value": "[reference(resourceId('Microsoft.Insights/dataCollectionRules', variables('dcrName')), '2022-06-01').immutableId]"
             },
             {
               "name": "STREAM_NAME",
-              "value": "[parameters('streamName')]"
+              "value": "[variables('streamName')]"
             }
           ]
         }
@@ -156,6 +239,26 @@
     "functionAppHostName": {
       "type": "string",
       "value": "[reference(parameters('functionAppName')).defaultHostName]"
+    },
+    "logAnalyticsWorkspaceName": {
+      "type": "string",
+      "value": "[variables('workspaceName')]"
+    },
+    "dataCollectionEndpointUri": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName')), '2022-06-01').logsIngestion.endpoint]"
+    },
+    "dataCollectionRuleImmutableId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/dataCollectionRules', variables('dcrName')), '2022-06-01').immutableId]"
+    },
+    "streamName": {
+      "type": "string",
+      "value": "[variables('streamName')]"
+    },
+    "kqlQuery": {
+      "type": "string",
+      "value": "[concat(parameters('tableName'), ' | project TimeGenerated, DeviceId, Severity, EventMessage | order by TimeGenerated desc | take 10')]"
     }
   }
 }
