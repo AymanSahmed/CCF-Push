@@ -1,0 +1,50 @@
+[
+  {
+    "type": "Microsoft.SecurityInsights/dataConnectors",
+    "apiVersion": "2023-02-01-preview",
+    "name": "NetworkLogAPINetworkLogsConnector",
+    "location": "{{location}}",
+    "kind": "RestApiPoller",
+    "properties": {
+      "connectorDefinitionName": "NetworkLogAPIConnectorDef",
+      "dataType": "NetworkLogAPINetworkLogs_CL",
+      "dcrConfig": {
+        "streamName": "Custom-NetworkLogAPINetworkLogs_CL",
+        "dataCollectionEndpoint": "{{dataCollectionEndpoint}}",
+        "dataCollectionRuleImmutableId": "{{dataCollectionRuleImmutableId}}"
+      },
+      "auth": {
+        "type": "APIKey",
+        "ApiKey": "{{apiKey}}",
+        "ApiKeyName": "X-API-Key",
+        "ApiKeyIdentifier": ""
+      },
+      "request": {
+        "apiEndpoint": "https://netlogapigk5ldy5wtswyq.azurewebsites.net/api/GetNetworkLogs",
+        "httpMethod": "GET",
+        "queryTimeFormat": "yyyy-MM-ddTHH:mm:ssZ",
+        "rateLimitQPS": 10,
+        "queryWindowInMin": 5,
+        "retryCount": 3,
+        "timeoutInSeconds": 60,
+        "StartTimeAttributeName": "since",
+        "queryParameters": {
+          "pageSize": "100"
+        }
+      },
+      "paging": {
+        "pagingType": "CountBasedPaging",
+        "pageNumberParaName": "page",
+        "pageSize": 100,
+        "pageSizeParameterName": "pageSize",
+        "hasNextFlagJsonPath": "$.metadata.hasNextPage"
+      },
+      "response": {
+        "eventsJsonPaths": ["$.data[*]"],
+        "format": "json",
+        "successStatusJsonPath": "$.status",
+        "successStatusValue": "success"
+      }
+    }
+  }
+]

@@ -1,0 +1,36 @@
+[
+    {
+        "name": "NetworkLogAPINetworkLogs_CL",
+        "type": "Microsoft.OperationalInsights/workspaces/tables",
+        "apiVersion": "2025-02-01",
+        "location": "{{location}}",
+        "properties": {
+            "schema": {
+                "name": "NetworkLogAPINetworkLogs_CL",
+                "columns": [
+                    { "name": "TimeGenerated", "type": "datetime", "description": "Event timestamp mapped from the API timestamp field." },
+                    { "name": "Id", "type": "guid", "description": "Stable deterministic UUID for this record. Safe for deduplication across pages and calls." },
+                    { "name": "Timestamp", "type": "datetime", "description": "Event timestamp in ISO 8601 UTC format. Records span roughly the last 48 hours relative to current server time." },
+                    { "name": "SourceIp", "type": "string", "description": "Source IPv4 address of the network flow." },
+                    { "name": "DestinationIp", "type": "string", "description": "Destination IPv4 address of the network flow." },
+                    { "name": "SourcePort", "type": "real", "description": "Source port number. 0 for ICMP flows." },
+                    { "name": "DestinationPort", "type": "real", "description": "Destination port number. 0 for ICMP flows." },
+                    { "name": "Protocol", "type": "string", "description": "Network protocol. Values: TCP, UDP, ICMP." },
+                    { "name": "Action", "type": "string", "description": "Firewall disposition. Values: ALLOW, DENY, DROP." },
+                    { "name": "BytesIn", "type": "real", "description": "Bytes received (inbound). 0 for blocked sessions." },
+                    { "name": "BytesOut", "type": "real", "description": "Bytes sent (outbound). 0 for blocked sessions." },
+                    { "name": "Packets", "type": "real", "description": "Total packet count for the flow." },
+                    { "name": "DurationMs", "type": "real", "description": "Flow duration in milliseconds. 0 for blocked sessions." },
+                    { "name": "NetworkZone", "type": "string", "description": "Network segment. Values: internal, dmz, external." },
+                    { "name": "DeviceId", "type": "string", "description": "Identifier of the reporting device (e.g. fw-001)." },
+                    { "name": "DeviceName", "type": "string", "description": "Human-readable device name (e.g. Firewall-Primary)." },
+                    { "name": "RuleName", "type": "string", "description": "Name of the firewall rule that matched this flow." },
+                    { "name": "Severity", "type": "string", "description": "Event severity. Values: Low, Medium, High, Critical." },
+                    { "name": "Category", "type": "string", "description": "Traffic category. Values: Web, DNS, SSH, RDP, Email, Database, CloudStorage, VPN, NetworkOps, Recon, Malware, LateralMovement." },
+                    { "name": "ThreatIndicator", "type": "string", "description": "Threat intelligence tag if applicable (e.g. BruteForce, C2Server, RDPBruteForce, PortScan). Null for benign events." },
+                    { "name": "GeoCountry", "type": "string", "description": "ISO 3166-1 alpha-2 country code for the external IP. Null for internal-only flows." }
+                ]
+            }
+        }
+    }
+]

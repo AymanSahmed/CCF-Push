@@ -1,0 +1,112 @@
+{
+    "name": "NetworkLogAPIConnectorDef",
+    "apiVersion": "2022-09-01-preview",
+    "type": "Microsoft.SecurityInsights/dataConnectorDefinitions",
+    "location": "{{location}}",
+    "kind": "Customizable",
+    "availability": {
+        "isPreview": true,
+        "status": 1
+    },
+    "properties": {
+        "connectorUiConfig": {
+            "id": "NetworkLogAPIConnector",
+            "title": "NetworkLogAPI (using Sentinel Connector Builder Agent)",
+            "publisher": "Contoso SOC Team",
+            "descriptionMarkdown": "The NetworkLogAPI connector ingests network logs and traffic events from the NetworkLogAPI platform into Microsoft Sentinel.\n\nSupports API Key authentication.\n\nFor more information, visit [NetworkLogAPI Docs](https://netlogapigk5ldy5wtswyq.azurewebsites.net).",
+            "graphQueriesTableName": "NetworkLogAPINetworkLogs_CL",
+            "graphQueries": [
+                {
+                    "metricName": "Total events received",
+                    "legend": "{{graphQueriesTableName}}",
+                    "baseQuery": "{{graphQueriesTableName}} | where TimeGenerated > ago(14d) | summarize count() by bin(TimeGenerated, 1d)"
+                }
+            ],
+            "dataTypes": [
+                {
+                    "name": "{{graphQueriesTableName}}",
+                    "lastDataReceivedQuery": "{{graphQueriesTableName}} | summarize Time = max(TimeGenerated) | where isnotempty(Time)"
+                }
+            ],
+            "connectivityCriteria": [
+                {
+                    "type": "HasDataConnectors"
+                }
+            ],
+            "sampleQueries": [
+                {
+                    "description": "All network log events from the last 24 hours",
+                    "query": "{{graphQueriesTableName}} | where TimeGenerated > ago(24h) | take 100"
+                },
+                {
+                    "description": "Events by severity level",
+                    "query": "{{graphQueriesTableName}} | summarize count() by Severity | order by count_ desc"
+                },
+                {
+                    "description": "Denied or dropped traffic",
+                    "query": "{{graphQueriesTableName}} | where Action in ('DENY', 'DROP') | project TimeGenerated, SourceIp, DestinationIp, DestinationPort, Protocol, Action, RuleName, Severity | order by TimeGenerated desc"
+                },
+                {
+                    "description": "High and critical severity events with threat indicators",
+                    "query": "{{graphQueriesTableName}} | where Severity in ('High', 'Critical') and isnotempty(ThreatIndicator) | project TimeGenerated, SourceIp, DestinationIp, ThreatIndicator, Category, Action, GeoCountry | order by TimeGenerated desc"
+                },
+                {
+                    "description": "Top source IPs by traffic volume",
+                    "query": "{{graphQueriesTableName}} | summarize TotalBytesOut = sum(BytesOut), TotalBytesIn = sum(BytesIn), EventCount = count() by SourceIp | order by TotalBytesOut desc | take 20"
+                }
+            ],
+            "permissions": {
+                "resourceProvider": [
+                    {
+                        "provider": "Microsoft.OperationalInsights/workspaces",
+                        "permissionsDisplayText": "read and write permissions are required.",
+                        "providerDisplayName": "Workspace",
+                        "scope": "Workspace",
+                        "requiredPermissions": {
+                            "write": true,
+                            "read": true,
+                            "delete": false
+                        }
+                    }
+                ],
+                "customs": [
+                    {
+                        "name": "NetworkLogAPI API Key",
+                        "description": "A NetworkLogAPI API Key is required. See the [NetworkLogAPI documentation](https://netlogapigk5ldy5wtswyq.azurewebsites.net) for details on obtaining an API Key."
+                    }
+                ]
+            },
+            "instructionSteps": [
+                {
+                    "title": "Step 1 - Obtain your NetworkLogAPI API Key",
+                    "description": "Log in to your NetworkLogAPI account and navigate to the API settings to generate or retrieve your API Key. Refer to the [NetworkLogAPI documentation](https://netlogapigk5ldy5wtswyq.azurewebsites.net) for detailed instructions."
+                },
+                {
+                    "title": "Step 2 - Configure the connector",
+                    "description": "Enter your NetworkLogAPI API Key below to establish the connection with Microsoft Sentinel.",
+                    "instructions": [
+                        {
+                            "type": "Textbox",
+                            "parameters": {
+                                "label": "API Key",
+                                "placeholder": "Enter API Key",
+                                "type": "password",
+                                "name": "apiKey",
+                                "validations": {
+                                    "required": true
+                                }
+                            }
+                        },
+                        {
+                            "type": "ConnectionToggleButton",
+                            "parameters": {
+                                "connectLabel": "connect",
+                                "name": "connect"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

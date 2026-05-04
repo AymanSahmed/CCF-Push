@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# Azure Functions local settings (contains secrets — never commit)
+local.settings.json
+
+# Azure Functions build outputs
+.python_packages/
+bin/
+obj/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

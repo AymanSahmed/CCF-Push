@@ -1,0 +1,54 @@
+{
+    "name": "NetworkLogAPIDCR",
+    "apiVersion": "2024-03-11",
+    "type": "Microsoft.Insights/dataCollectionRules",
+    "kind": "Direct",
+    "location": "{{location}}",
+    "tags": {
+        "createdBy": "SentinelCodelessConnector"
+    },
+    "properties": {
+        "streamDeclarations": {
+            "Custom-NetworkLogAPINetworkLogs_CL": {
+                "columns": [
+                    { "name": "id", "type": "string" },
+                    { "name": "timestamp", "type": "string" },
+                    { "name": "sourceIp", "type": "string" },
+                    { "name": "destinationIp", "type": "string" },
+                    { "name": "sourcePort", "type": "real" },
+                    { "name": "destinationPort", "type": "real" },
+                    { "name": "protocol", "type": "string" },
+                    { "name": "action", "type": "string" },
+                    { "name": "bytesIn", "type": "real" },
+                    { "name": "bytesOut", "type": "real" },
+                    { "name": "packets", "type": "real" },
+                    { "name": "durationMs", "type": "real" },
+                    { "name": "networkZone", "type": "string" },
+                    { "name": "deviceId", "type": "string" },
+                    { "name": "deviceName", "type": "string" },
+                    { "name": "ruleName", "type": "string" },
+                    { "name": "severity", "type": "string" },
+                    { "name": "category", "type": "string" },
+                    { "name": "threatIndicator", "type": "string" },
+                    { "name": "geoCountry", "type": "string" }
+                ]
+            }
+        },
+        "destinations": {
+            "logAnalytics": [
+                {
+                    "workspaceResourceId": "{{workspaceResourceId}}",
+                    "name": "clv2ws1"
+                }
+            ]
+        },
+        "dataFlows": [
+            {
+                "streams": ["Custom-NetworkLogAPINetworkLogs_CL"],
+                "destinations": ["clv2ws1"],
+                "outputStream": "Custom-NetworkLogAPINetworkLogs_CL",
+                "transformKql": "source | extend TimeGenerated = todatetime(timestamp) | project TimeGenerated, Id = toguid(id), Timestamp = todatetime(timestamp), SourceIp = tostring(sourceIp), DestinationIp = tostring(destinationIp), SourcePort = toreal(sourcePort), DestinationPort = toreal(destinationPort), Protocol = tostring(protocol), Action = tostring(action), BytesIn = toreal(bytesIn), BytesOut = toreal(bytesOut), Packets = toreal(packets), DurationMs = toreal(durationMs), NetworkZone = tostring(networkZone), DeviceId = tostring(deviceId), DeviceName = tostring(deviceName), RuleName = tostring(ruleName), Severity = tostring(severity), Category = tostring(category), ThreatIndicator = tostring(threatIndicator), GeoCountry = tostring(geoCountry)"
+            }
+        ]
+    }
+}
