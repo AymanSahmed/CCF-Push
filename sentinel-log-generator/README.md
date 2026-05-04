@@ -6,8 +6,8 @@ An Azure Function (Python, v2 programming model) that generates fake security lo
 
 > Replace `<YOUR_GITHUB_USERNAME>` and `<YOUR_REPO_NAME>` in the URL below with your GitHub details, then commit `azuredeploy.json` to your repo — the button will go live automatically.
 
-[![Deploy to Azure](https://aka.ms/deploytoazure)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2F<YOUR_GITHUB_USERNAME>%2F<YOUR_REPO_NAME>%2Fmain%2Fsentinel-log-generator%2Fazuredeploy.json)
-[![Visualize](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/visualizebutton.svg)](http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2F<YOUR_GITHUB_USERNAME>%2F<YOUR_REPO_NAME>%2Fmain%2Fsentinel-log-generator%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazure)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAymanSahmed%2FCCF-Push%2Fmain%2Fsentinel-log-generator%2Fazuredeploy.json)
+[![Visualize](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/visualizebutton.svg)](http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2FAymanSahmed%2FCCF-Push%2Fmain%2Fsentinel-log-generator%2Fazuredeploy.json)
 
 The portal wizard will prompt for all required parameters (Function App name, storage account name, DCE/DCR details, and credentials). All Azure resources are created in one click.
 
@@ -279,7 +279,7 @@ In [README.md](README.md) replace both occurrences of:
 <YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME>
 ```
 
-with your actual GitHub username and repo name, then push. The button will immediately link to your ARM template and open the Azure portal wizard.
+The button is already live — it points to `AymanSahmed/CCF-Push`.
 
 ---
 
